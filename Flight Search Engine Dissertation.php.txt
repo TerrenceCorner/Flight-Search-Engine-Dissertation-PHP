@@ -1,0 +1,469 @@
+<?php
+require 'FlightGenerator.php';
+generateFlights();
+?>
+
+<link rel="stylesheet" type="text/css" href="Styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+
+<html>
+<head>
+    <title>Flight Search</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+
+<header>
+    <h1 class="logo">Flight Search Engine</h1>
+</header>
+
+<form action="home.php" method="POST">
+
+    <div class="user-input">
+
+        <?php
+
+        $file = fopen('airports.txt', 'r');
+        $airports = array();
+        while (($line = fgets($file)) !== false) {
+            $fields = explode(',', $line);
+            array_push($airports, $line);
+        }
+
+        echo '<form action="home.php" method="POST">';
+        echo '<label for="airport">From: </label>';
+        echo '<select name="deptAirport" id="deptAirport">';
+        foreach ($airports as $airport) {
+            echo '<option value=' . $airport . '">' . $airport. '</option>';
+        }
+        echo '</select>';
+
+        echo '<label for="airport">To: </label>';
+        echo '<select name="destAirport" id="destAirport">';
+        foreach ($airports as $airport) {
+            echo '<option value=' . $airport . '>' . $airport . '</option>';
+        }
+        echo '</select>';
+        ?>
+
+        <label for="earliest departure">  Earliest departure: </label>
+        <input type="date" id="earlyDept" name="earlyDept" min="<?php echo date('Y-m-d') ?>" required>
+        <label for="Latest departure"> Latest return: </label>
+        <input type="date" id="lateReturn" name="lateReturn" min="<?php echo date('Y-m-d') ?>" required>
+
+        <label for="Day to depart on"> Departing: </label>
+        <select name="departDay" id="departDay">
+            <option disabled selected value> day of departure </option>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
+        </select>
+
+        <label for="Day to return on" > Returning: </label>
+        <select name="returnDay" id="returnDay">
+            <option disabled selected value> day of return </option>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
+        </select>
+
+    </div>
+    <div class="user-input">
+
+        <label for="sort" > Sort by price: </label>
+        <input type="checkbox" name="sort">
+
+        <label for="Cabin bags"> No of cabin bags: </label>
+        <select name="cabinBags" id="cabinBags">
+            <option disabled selected value> Bags </option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+        </select>
+
+        <label for="Checked bags"> No of checked bags: </label>
+        <select name="checkedBags" id="checkedBags">
+            <option disabled selected value> Bags </option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+        </select>
+
+        <label for="Class"> Class: </label>
+        <select name="class" id="class">
+            <option selected value="econ"> Economy </option>
+            <option value="premEcon"> Premium Economy </option>
+            <option value="business"> Business </option>
+            <option value="first"> First </option>
+        </select>
+
+
+        <input class="search-button" type="submit" value="Search">
+    </form>
+    </div>
+</body>
+</html>
+
+<script>
+
+    function convertDateToDateObj (date) {
+        var date = new Date(date.value);
+        return new Date(date.toLocaleDateString().split("/").reverse().join("-"));
+
+    }
+
+    function getDateDifference(earliestObj, latestObj) {
+        var diff = latestObj.getTime() - earliestObj.getTime();
+        return diffDays = diff / (60 * 60 * 24 * 1000);
+    }
+
+    function renableDaySelect(){
+        for (var i = 0; i < 8; i++) {
+            document.getElementById("returnDay").options[i].disabled = false;
+            document.getElementById("departDay").options[i].disabled = false;
+        }
+
+    }
+
+    function disableDaySelect(){
+        for (var i = 0; i < 8; i++) {
+            document.getElementById("returnDay").options[i].disabled = true;
+            document.getElementById("departDay").options[i].disabled = true;
+        }
+
+    }
+
+    function correctReturnDays() {
+        var earliestObj = convertDateToDateObj(earliest);
+        var latestObj = convertDateToDateObj(latest);
+        var diffDays = getDateDifference(earliestObj, latestObj);
+
+        if (diffDays < 7) {
+            diffDays = getDateDifference(earliestObj, latestObj);
+            var day = earliestObj.getUTCDay();
+            var i = 0;
+            while (i <= diffDays) {
+                document.getElementById("returnDay").options[day].disabled = false;
+                day++;
+                if (day === 8) {
+                    day = 1;
+                }
+                i++;
+            }
+        } else {
+            renableDaySelect();
+        }
+    }
+
+    function correctDepartDays() {
+        var earliestObj = convertDateToDateObj(earliest);
+        var latestObj = convertDateToDateObj(latest);
+        var diffDays = getDateDifference(earliestObj, latestObj);
+        if (diffDays < 7) {
+            diffDays = getDateDifference(earliestObj, latestObj);
+            var day = earliestObj.getUTCDay();
+            var i = 0;
+            while (i <= diffDays) {
+                document.getElementById("departDay").options[day].disabled = false;
+                day++;
+                if (day === 8) {
+                    day = 1;
+                }
+                i++;
+            }
+        } else {
+            renableDaySelect();
+        }
+    }
+
+    function correctDays() {
+        disableDaySelect();
+
+        correctReturnDays();
+
+        correctDepartDays();
+    }
+
+    function forceDepartBeforeReturn() {
+        forceDepartBeforeReturnDate();
+        forceDepartBeforeReturnDay();
+    }
+
+    function forceDepartBeforeReturnDate() {
+        if (latest.value <= earliest.value) {
+
+            latest.value = earliest.value;
+        }
+    }
+
+    function dayToInt(day) {
+        if (day === "Monday") {
+            var num = 1;
+        }
+        if (day === "Tuesday") {
+            var num = 2;
+        }
+        if (day === "Wednesday") {
+            var num = 3;
+        }
+        if (day === "Thursday") {
+            var num = 4;
+        }
+        if (day === "Friday") {
+            var num = 5;
+        }
+        if (day === "Saturday") {
+            var num = 6;
+        }
+        if (day === "Sunday") {
+            var num = 7;
+        }
+
+        return num;
+    }
+
+    function forceDepartBeforeReturnDay() {
+        var i = 1;
+        var earliestInt = dayToInt(document.getElementById("departDay").value);
+        var earliestObj = convertDateToDateObj(earliest);
+        var latestObj = convertDateToDateObj(latest);
+        var diffDays = getDateDifference(earliestObj, latestObj);
+        if (diffDays < 7 && earliestInt >= 1 && earliestInt <=7) {
+            while (i < earliestInt) {
+                document.getElementById("returnDay").options[i].disabled = true;
+                i++;
+            }
+        }
+    }
+
+    var earliest = document.getElementById("earlyDept");
+    var latest = document.getElementById("lateReturn");
+    var earliestDay = convertDateToDateObj(document.getElementById("departDay"));
+    var latestDay =  convertDateToDateObj(document.getElementById("returnDay"));
+
+    earliest.addEventListener("input", function() {
+
+        correctDays();
+
+        forceDepartBeforeReturn();
+
+    });
+    latest.addEventListener("input", function() {
+
+        correctDays();
+
+        forceDepartBeforeReturn();
+
+    });
+
+    document.getElementById("departDay").addEventListener("change", function() {
+
+        forceDepartBeforeReturn();
+
+    });
+
+    document.getElementById("returnDay").addEventListener("change", function() {
+
+        forceDepartBeforeReturn();
+
+    });
+</script>
+<?php
+
+function flightSearch($origin, $destination, $date)
+{
+    $flights = json_decode(file_get_contents('flights.json'), true);
+
+    $matchingFlights = array();
+
+    foreach ($flights as $flight) {
+        $flightDate = $flight['date'];
+        $originAirport = $flight['origin'];
+        $destinationAirport = $flight['destination'];
+
+        if ($flightDate === $date && $origin === $originAirport && $destination === $destinationAirport) {
+            $matchingFlights[] = $flight;
+        }
+    }
+
+    return $matchingFlights;
+}
+
+function calculateBaggageFees($baseFare, $flight) {
+
+    $fare = (float)$baseFare;
+
+    $flight = explode(' ', $flight);
+
+    if (isset($_POST['checkedBags'])) {
+        $fare += (float) $_POST['checkedBags'] * (float) $flight[9];
+    }
+
+    if (isset($_POST['cabinBags'])) {
+        $fare += (float) $_POST['cabinBags'] * ((float) $flight[10]);
+    }
+
+
+    return $fare;
+}
+
+function calculateClassFees($baseFare, $flight) {
+
+    $flight = explode(' ', $flight);
+
+    $fare = (float)$baseFare;
+    if (isset($_POST['class'])) {
+        if ($_POST['class'] === "premEcon") {
+            $fare *= (float)$flight[11];
+        } else if ($_POST['class'] === "business") {
+            $fare *= (float)$flight[12];
+        } else if ($_POST['class'] === "first") {
+            $fare *= (float)$flight[13];
+        }
+    }
+
+    return $fare;
+}
+
+if(isset($_POST['deptAirport'])) {
+    $origin = $_POST['deptAirport'];
+    $destination = $_POST['destAirport'];
+    $returnDate = date_create_from_format('Y-m-d', $_POST['lateReturn']);
+    $departDate = date_create_from_format('Y-m-d', $_POST['earlyDept']);
+    $departDay = $_POST['departDay'];
+    $returnDay = $_POST['returnDay'];
+
+    $departFound = false;
+    $returnFound = false;
+    $noData = true;
+    $outboundFlights = array();
+    $returnFlights = array();
+    $flightPairs = array();
+
+    for ($date = $departDate; $date <= $returnDate; $date->modify('+1 day')) {
+        if (!$departFound && $date->format('l') == ucwords($departDay)) {
+            $depart = new DateTime();
+            $depart = date("Y.m.d", strtotime($date->format('Y-m-d')));
+            $departFound = true;
+        } elseif (!$returnFound && $date->format('l') == ucwords($returnDay)) {
+            $return = new DateTime();
+            $return = date("Y.m.d", strtotime($date->format('Y-m-d')));
+            $returnFound = true;
+        }
+        if ($departFound && $returnFound) {
+
+            $outboundFlightData = flightSearch($origin, $destination, $depart);
+            $returnFlightData = flightSearch($destination, $origin, $return);
+
+            foreach ($outboundFlightData as $flight) {
+
+                $remover = explode(' ', $flight);
+                $outboundPrice = calculateBaggageFees($remover[8], $flight);
+                $outboundPrice = calculateClassFees($outboundPrice, $flight);
+                $classSave = $remover[11];
+                for ($i = 8; $i <= 13; $i++) {
+                    unset($remover[$i]);
+                }
+
+                $flightToDisplay = implode(' ', $remover);
+                if ($_POST['class'] === "econ" || (int) $classSave != 1) {
+                    $outboundFlights[] = array(
+                        'outbound' => $flightToDisplay,
+                        'outboundPrice' => $outboundPrice
+                    );
+                }
+            }
+
+            foreach ($returnFlightData as $return) {
+                $returnRemover = explode(' ', $return);
+                $return = str_replace($returnRemover[8], "", $return);
+                $returnPrice = calculateBaggageFees($returnRemover[8], $return);
+                $returnPrice = calculateClassFees($returnPrice, $return);
+                $returnClassSave = $returnRemover[11];
+
+                for ($i = 8; $i <= 13; $i++) {
+                    unset($returnRemover[$i]);
+                }
+
+                $return = implode(' ', $returnRemover);
+                if ($_POST['class'] === "econ" || (int)$returnClassSave != 1) {
+                    $returnFlights[] = array(
+                        'return' => $return,
+                        'returnPrice' => $returnPrice
+                    );
+                }
+            }
+
+            $returnFound = false;
+            $departFound = false;
+        }
+
+    }
+
+    if (!empty($outboundFlights)) {
+        foreach ($outboundFlights as $flight) {
+            foreach ($returnFlights as $returnFlight) {
+                $outboundDate = substr($flight['outbound'], 0, 10);
+                $returnDate = substr($returnFlight['return'], 0, 10);
+                $outboundDate = DateTime::createFromFormat('Y.m.d', $outboundDate);
+                $returnDate = DateTime::createFromFormat('Y.m.d', $returnDate);
+                if ($returnDate > $outboundDate) {
+                    $flightPairs[] = array(
+                            'outbound' => $flight["outbound"],
+                        'return' => $returnFlight["return"],
+                        'price' => ($flight["outboundPrice"] + $returnFlight["returnPrice"])
+                    );
+                }
+            }
+        }
+
+        if (isset($_POST['sort']) && $_POST['sort'] === 'on') {
+            usort($flightPairs, function ($x, $y) {
+                return $x['price'] - $y['price'];
+            });
+        }
+
+        foreach ($flightPairs as $flight) {
+            echo '<div class="container">';
+            echo '<div class="text-box">';
+            echo '<p class="text">';
+            echo $flight["outbound"];
+            echo " | ";
+            echo $flight["return"];
+            echo " ";
+            echo "$" . ($flight["price"]);
+
+            echo '</p>';
+            echo '</div>';
+            echo '</div>';
+        }
+    } else {
+        echo "No flights matching this criteria found";
+    }
+
+    echo "</p>";
+
+}
+
+?>
+
+</body>
+
+</html>
